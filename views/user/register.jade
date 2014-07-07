@@ -1,0 +1,10 @@
+extends ../layout
+
+block content
+  div.registration
+    h1 Register New User
+
+    form(method='post', action='/users/new')
+      include ../user/userFields
+      div.but
+        input(type='submit', value='Register')
