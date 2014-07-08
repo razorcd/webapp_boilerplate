@@ -9,7 +9,7 @@ var userSchema = mongoose.Schema({
 
 //check password: cb(err, result), result=true is password is correct
 userSchema.methods.authenticate = function(plainPassword, cb){
-  bcrypt.compare(plainPassword, this.password, cb(err, result))
+  bcrypt.compare(plainPassword, this.password, function(err, result){cb(err, result);})
 };
 
 //encrypt password before saving to db

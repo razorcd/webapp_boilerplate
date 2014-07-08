@@ -4,10 +4,10 @@ div.navbar
   a#title(href='/') NOTEPAD
   
   //-navbar login/register/logout buttons
-  if (!currentuser)
-    a#login(href='/sessions/new') LOGIN
+  if (!currentUser)
+    a#login(href='/login') LOGIN
     span#login / 
-    a#login(href='/users/new') REGISTER
+    a#login(href='/register') REGISTER
   else
     a#logout(href='/logout') LOGOUT
-    div#username=currentuser
+    div#username=currentUser

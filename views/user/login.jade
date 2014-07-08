@@ -1,0 +1,13 @@
+extends ../layout
+
+block content
+  div.registration
+    h1 Log In User
+    p#login-error=messages
+    form(method='post', action='/login')
+      include ../user/userFields
+      div.remember
+        //-input#remember_me(type='checkbox', name='remember_me')
+        //-label(for remember_me) Remember me
+      div.but
+        input(type='submit', value='Log In')

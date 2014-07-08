@@ -1,8 +1,7 @@
 div.fields
   label Email:
-  - if (!user) var user = {};
-  input(name='user[email]', value=user.email || '')
+  input(name='email')
 
 div.fields
   label Password:
-  input(name='user[password]', value=user.password || '', type='password')
+  input(name='password', type='password')
