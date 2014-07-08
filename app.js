@@ -12,7 +12,7 @@ var path = require('path');
 var methodOverride = require('method-override');
 var formidable = require('formidable');
 var mongoose = require('mongoose');
-var app = exports.app = express();
+var app = express();
 
 // all environments
 app.set('port', process.env.PORT || 3000);
@@ -33,7 +33,7 @@ app.use(app.router);
 app.use(express.static(path.join(__dirname, 'public')));
 
 //db
-var db = require("./db/dbconnect.js")(mongoose, "WEBAPP" + process.env.NODE_ENV);
+var db = require("./db/dbconnect.js")(mongoose, "WEBAPP-" + process.env.NODE_ENV);
 var User = require('./db/model/User.js').User(db);
 
 
@@ -45,13 +45,16 @@ if ('development' == app.get('env')) {
 
 // test only
 if ('test' == app.get('env')) {
-  var exec = require('child_process').exec;
-  var e = exec('jasmine-node test/app-spec.js --config APP_PORT ' + app.get('port') + ' --config APP_HOST ' + app.get('host'), function(err, stdout,stderr){
-    console.log(" ****** JASMINE TEST RESULTS: *******");
-    if(err) console.log(err)
-    if (stderr) console.log(stderr)
-      else {console.log(stdout);}
-    console.log(" ****** JASMINE TEST RESULTS. *******");
+  //delete all users first
+  User.find().remove().exec(function(){
+    //execute jasmine tests in new process
+    var exec = require('child_process').exec;
+    var e = exec('jasmine-node test/app-spec.js --config APP_PORT ' + app.get('port'), function(err, stdout,stderr){
+      console.log("\nJASMINE TEST RESULTS:");
+      if(err) console.log(err)
+      if (stderr) console.log(stderr)
+        else {console.log(stdout);}
+    });
   });
 }
 
@@ -64,20 +67,23 @@ app.get('/redirect', function(req,res){
 
 //user routes
 app.get('/register', function(req,res){
-  res.render('user/register.jade');
+  res.render('user/register.jade', {  user: new User() });
 })
 
 app.post('/register', function(req,res){
+ 
+ /* 
   var form = new formidable.IncomingForm();
   form.parse(req, function(err, fields, files){
+    console.log(fields);
     if (err) {
       res.send(400, err);
       return;
     }
-
+*/
     var userFields = {
-      email : fields.email,
-      password : fields.password
+      email : req.body.email,
+      password : req.body.password
     }
 
     var user = new User(userFields);
@@ -93,7 +99,12 @@ app.post('/register', function(req,res){
     })
 
     
-  })
+  //})
+
+
+
+
+
 })
 
 

@@ -1,5 +1,6 @@
 div.fields
   label Email:
+  - if (!user) var user = {};
   input(name='user[email]', value=user.email || '')
 
 div.fields
