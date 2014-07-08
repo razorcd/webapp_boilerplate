@@ -1,3 +1,4 @@
+process.env.NODE_ENV = 'test';
 
 /**
  * Module dependencies.
@@ -11,7 +12,7 @@ var path = require('path');
 var methodOverride = require('method-override');
 var formidable = require('formidable');
 var mongoose = require('mongoose');
-var app = express();
+var app = exports.app = express();
 
 // all environments
 app.set('port', process.env.PORT || 3000);
@@ -32,7 +33,6 @@ app.use(app.router);
 app.use(express.static(path.join(__dirname, 'public')));
 
 //db
-console.log(process.env.NODE_ENV);
 var db = require("./db/dbconnect.js")(mongoose, "WEBAPP" + process.env.NODE_ENV);
 var User = require('./db/model/User.js').User(db);
 
@@ -43,9 +43,23 @@ if ('development' == app.get('env')) {
   app.use(express.errorHandler());
 }
 
+// test only
+if ('test' == app.get('env')) {
+  var exec = require('child_process').exec;
+  var e = exec('jasmine-node test/app-spec.js --config APP_PORT ' + app.get('port') + ' --config APP_HOST ' + app.get('host'), function(err, stdout,stderr){
+    console.log(" ****** JASMINE TEST RESULTS: *******");
+    if(err) console.log(err)
+    if (stderr) console.log(stderr)
+      else {console.log(stdout);}
+    console.log(" ****** JASMINE TEST RESULTS. *******");
+  });
+}
+
 app.get('/', routes.index);
 app.get('/users', user.list);
-
+app.get('/redirect', function(req,res){
+  res.redirect('/');
+})
 
 
 //user routes
@@ -91,4 +105,5 @@ app.post('/register', function(req,res){
 
 http.createServer(app).listen(app.get('port'), function(){
   console.log(' ------------------- Express server listening on port ' + app.get('port') + ' -------------------');
+  console.log("Process environment:", app.get('env'));
 });

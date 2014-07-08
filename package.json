@@ -10,6 +10,9 @@
     "jade": "*",
     "formidable": "^1.0.15",
     "bcrypt-nodejs": "0.0.3",
-    "mongoose": "^3.8.12"
+    "mongoose": "^3.8.12",
+    "jasmine-node": "^1.14.3",
+    "supertest": "^0.13.0",
+    "request": "^2.37.0"
   }
 }
