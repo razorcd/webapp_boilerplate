@@ -187,6 +187,7 @@ describe("test User register/login/logout", function(){
         cookie = j.getCookies(localhost+"/login");
         expect(cookie).toBeDefined();
         expect(cookie).toMatch(/logintoken/i);
+        expect(cookie).not.toMatch(/Expires/);
         done();
       })
     })
@@ -261,6 +262,56 @@ describe("test User register/login/logout", function(){
 
   })
 
+
+
+  describe("test user login - remember me", function() {
+    
+    it("should login the existing user", function(done){
+      var form = {
+          email: 'test4@test.test',
+          password: "qwe123qwe",
+          remember_me: true
+      }
+
+      var options = {
+        url : localhost+"/login",
+        method: "POST",
+        followAllRedirects: true,
+        form: form
+      }
+      request(options, function(err,res){
+        expect(res.statusCode).toBe(200);
+        expect(res.body).toMatch(/session OK/i);
+        cookie = j.getCookies(localhost+"/login");
+        expect(cookie).toBeDefined();
+        expect(cookie).toMatch(/logintoken/i);
+        //expect(cookie).toMatch(/Expires/);
+        done();
+      })
+    })
+
+
+    it("should stay logged in if after login was completed", function(done){
+      request.get(localhost+'/users', function(err,res){
+        expect(res.statusCode).toBe(200);
+        expect(res.body).toMatch(/session OK/i);
+        done();
+      })
+    })
+
+/*    //set expiration on cookies to 5000ms before unhiding this
+    it("should logout after cookie expires", function(done){
+      setTimeout(function(){
+        request.get(localhost+'/users', function(err,res){
+          expect(res.statusCode).toBe(200);
+          expect(res.body).not.toMatch(/session OK/i);
+          done();
+        })
+      }, 5500*60);
+    }, 10000*60);*/
+
+  });
+  
 
 
 });

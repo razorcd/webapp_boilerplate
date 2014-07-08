@@ -37,12 +37,14 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 
 // development only
-if ('development' == app.get('env')) {
-  app.use(express.errorHandler());
+if ('production' == app.get('env')) {
+  var sessionExpiration = 1000*60*60*24*7*2;   //2weeks for remember_me
 }
 
 // test only
 if ('test' == app.get('env')) {
+  var sessionExpiration = 5000*60;   //5min for remember_me
+  app.use(express.errorHandler());
   //delete all users first
   User.find().remove().exec(function(){
     //execute jasmine tests in new process
@@ -97,6 +99,7 @@ app.get('/login', function(req,res){
 
 app.post('/login', function(req,res){
   var user = {     email: req.body.email,  };
+  var remember_me = Date.now() + 1000*60*10;  //default expiration 30min
 
   User.findOne(user, function(err, user){
     if (err) {res.send(400, err); return;}
@@ -104,12 +107,13 @@ app.post('/login', function(req,res){
       user.authenticate(req.body.password, function(err, result){
         if (err) {res.send(400, err); return;}
         if(result === true) {
-
           //find if an old session already exists for this email
+          if (req.body.remember_me) remember_me = Date.now() + sessionExpiration;    //stored session expiration date
           Session.findOne({email: user.email}, function(err, oldUser){
             //generating new session token
-            var session = oldUser || new Session( {email: user.email});
+            var session = oldUser || new Session( {createdAt: Date.now(), email: user.email, remember_me: remember_me});
             session.generateToken();
+            session.remember_me = remember_me;            
             session.save(function(err,token){
               if (err) { res.send(400,err); return;}
               //adding encoded token to cookie
@@ -118,7 +122,10 @@ app.post('/login', function(req,res){
                   token: session.token
               }
               var encodedCookieToken = jwt.encode(decCookieToken, "secret webapp token pass");
-              res.cookie('logintoken', encodedCookieToken, { expires: new Date(Date.now() + 2 * 604800000), path: '/' }) //2*7days
+              //if (req.body.remember_me)  res.cookie('logintoken', encodedCookieToken, { expires: new Date(Date.now() + sessionExpiration), path: '/' }) //15s
+                //res.cookie('logintoken', encodedCookieToken, { expires: new Date(Date.now() + 2 * 604800000), path: '/' }) //2*7days
+              ///else  
+              res.cookie('logintoken', encodedCookieToken, {path: '/'} ) //2*7days
               //res.send(token);
               res.redirect("/users");
             })
@@ -138,7 +145,23 @@ function checkLogin(req,res,next){
     var decCookieSession = jwt.decode(req.cookies.logintoken, "secret webapp token pass");
     Session.findOne({email: decCookieSession.email}, function(err, session){
       if (session && decCookieSession.token === session.token) {
+        
+        //check if session expired. If remember_me expired and lastTimeUsed was 10min ago then delete session.
+        if ((session.remember_me < Date.now()) && ((Date.now() - session.lastTimeUsed)/1000)>10*60) { //lasttimeused more then 10min ago
+          console.log("Session expired");
+          session.remove();
+          res.clearCookie('logintoken');
+          res.redirect('/login');
+          return;
+        }
+        //console.log("Session alive");
+        //console.log("Remaining until remember_me: ", (session.remember_me - Date.now())/1000/60 + "min until expiration"); 
+        //console.log("Lasttimeused: ", (Date.now() - session.lastTimeUsed)/1000 + "s ago"); 
+        //console.log(req.cookies);
+        //if (req.cookies.logintoken) res.cookie('logintoken', req.cookies.logintoken, { expires: new Date(Date.now() + sessionExpiration), path: '/' }) //reset cookie expiratin to another 10min
+                                          
         req.currentUser = session.email;
+        session.setLastTimeUsed(); session.save();  //updating sesions lastTimeUsed value
         next();
       }
       else {
@@ -149,7 +172,8 @@ function checkLogin(req,res,next){
 
   } else res.redirect('/login');
 }
-//*** user routes END ***
+
+
 
 app.get('/logout', function(req,res){
   if(req.cookies && req.cookies.logintoken){
@@ -163,6 +187,7 @@ app.get('/logout', function(req,res){
   } else res.send(400, 'error logging out');
 })
 
+//*** user routes END ***
 
 
 
