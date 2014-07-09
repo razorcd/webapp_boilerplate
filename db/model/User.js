@@ -12,6 +12,15 @@ userSchema.methods.authenticate = function(plainPassword, cb){
   bcrypt.compare(plainPassword, this.password, function(err, result){cb(err, result);})
 };
 
+userSchema.methods.parseValidationError = function(){
+  if (!this.errors) return;
+  var error = {email: '', password: ''};
+  if (this.errors.email) error.email = this.errors.email.message;
+  if (this.errors.password) error.password = this.errors.password.message;
+  //console.log(error);
+  return error;
+}
+
 //encrypt password before saving to db
 userSchema.pre('save', function(next){
   this.password = bcrypt.hashSync(this.password);

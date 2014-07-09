@@ -36,7 +36,8 @@ describe("test User register/login/logout", function(){
     it("should return the register window", function(done){
       request.get(localhost+'/register', function(err,res){
         expect(res.statusCode).toBe(200);
-        expect(res.body).toMatch(/class=\"registration\"/i)
+        expect(res.body).toMatch(/class=\"registration\"/i);
+        expect(res.req.path).toBe('/register');
         done();
       })
     })
@@ -47,9 +48,18 @@ describe("test User register/login/logout", function(){
         email: 'r@r.r',
         password: 'qwertyuiop'
       }
-      request.post(localhost+"/register", {form: form}, function(err,res){
-        expect(res.statusCode).not.toBe(200);
-        expect(res.body).toMatch(/Validation failed/i)
+
+      var options = {
+        url : localhost+"/register",
+        method: "POST",
+        followAllRedirects: true,
+        form: form
+      }
+
+      request(options, function(err,res){
+        expect(res.statusCode).toBe(200);
+        expect(res.body).toMatch(/Email not valid/i)
+        expect(res.req.path).toBe('/register');
         done();
       })
     })
@@ -59,9 +69,18 @@ describe("test User register/login/logout", function(){
       var form = {
         password: 'qwertyuiop'
       }
-      request.post(localhost+"/register", {form: form}, function(err,res){
-        expect(res.statusCode).not.toBe(200);
-        expect(res.body).toMatch(/Validation failed/i)
+      var options = {
+        url : localhost+"/register",
+        method: "POST",
+        followAllRedirects: true,
+        form: form
+      }
+
+      request(options, function(err,res){
+        expect(res.statusCode).toBe(200);
+        expect(res.body).toMatch(/Path \`email\` is required./i);
+        expect(res.req.path).toBe('/register');
+
         done();
       })
     })
@@ -71,9 +90,17 @@ describe("test User register/login/logout", function(){
         email: 'qwer@ert@dd',
         password: 'qwe'
       }
-      request.post(localhost+"/register", {form: form}, function(err,res){
-        expect(res.statusCode).not.toBe(200);
-        expect(res.body).toMatch(/Validation failed/i)
+      var options = {
+        url : localhost+"/register",
+        method: "POST",
+        followAllRedirects: true,
+        form: form
+      }
+
+      request(options, function(err,res){
+        expect(res.statusCode).toBe(200);
+        expect(res.body).toMatch(/Password not valid. Must be min 8 characters/i);
+        expect(res.req.path).toBe('/register');
         done();
       })
     })
@@ -83,9 +110,17 @@ describe("test User register/login/logout", function(){
       var form = {
         email: "qwert@qwe.ww"
       }
-      request.post(localhost+"/register", {form: form}, function(err,res){
-        expect(res.statusCode).not.toBe(200);
-        expect(res.body).toMatch(/Validation failed/i)
+      var options = {
+        url : localhost+"/register",
+        method: "POST",
+        followAllRedirects: true,
+        form: form
+      }
+
+      request(options, function(err,res){
+        expect(res.statusCode).toBe(200);
+        expect(res.body).toMatch(/Path \`password\` is required/i);
+        expect(res.req.path).toBe('/register');
         done();
       })
     })
@@ -96,23 +131,38 @@ describe("test User register/login/logout", function(){
                 email: 'test4@test.test',
                 password: "qwe123qwe"
       }
+      var options = {
+        url : localhost+"/register",
+        method: "POST",
+        followAllRedirects: true,
+        form: form
+      }
 
-      request.post(localhost+"/register", {form: form}, function(err,res){
+      request(options, function(err,res){
         expect(res.statusCode).toBe(200);
-        expect(res.body).toMatch(/test4@test.test/i);
+        //exp(res.body).toMatch(/test4@test.test/i);
+        expect(res.req.path).not.toBe('/register');
         done();
       })
     })
 
 
-    it("should return 400 on 'User already exists'", function(done){
+    it("should return error on 'User already exists'", function(done){
       var form = {
                 email: 'test4@test.test',
                 password: "qwe123qwe"
       }
-      request.post(localhost+"/register", {form: form}, function(err,res){
-        expect(res.statusCode).not.toBe(200);
-        expect(res.body).toMatch(/duplicate key error/i);
+      var options = {
+        url : localhost+"/register",
+        method: "POST",
+        followAllRedirects: true,
+        form: form
+      }
+
+      request(options, function(err,res){
+        expect(res.statusCode).toBe(200);
+        expect(res.body).toMatch(/User already exists/i);
+        expect(res.req.path).toBe('/register');
         done();
       })
     })
@@ -126,6 +176,7 @@ describe("test User register/login/logout", function(){
       request.get(localhost+"/login", function(err,res){
         expect(res.statusCode).toBe(200);
         expect(res.body).toMatch(/Login/i);
+        expect(res.req.path).toBe('/login');
         done();
       })
     })
@@ -143,9 +194,11 @@ describe("test User register/login/logout", function(){
         form: form
       }
       request(options, function(err,res){
-        expect(res.statusCode).toBe(400);
-        expect(res.body).toMatch(/can't find/i);
+        expect(res.statusCode).toBe(200);
+        expect(res.body).toMatch(/Can\'t find email/i);
+        expect(res.req.path).toBe('/login');
         done();
+
       })
     })
 
@@ -162,8 +215,9 @@ describe("test User register/login/logout", function(){
         form: form
       }
       request(options, function(err,res){
-        expect(res.statusCode).toBe(400);
-        expect(res.body).toMatch(/bad password/i);
+        expect(res.statusCode).toBe(200);
+        expect(res.body).toMatch(/Bad password/i);
+        expect(res.req.path).toBe('/login');
         done();
       })
     })
@@ -187,16 +241,17 @@ describe("test User register/login/logout", function(){
         cookie = j.getCookies(localhost+"/login");
         expect(cookie).toBeDefined();
         expect(cookie).toMatch(/logintoken/i);
-        expect(cookie).not.toMatch(/Expires/);
+        expect(res.req.path).toBe('/checkLoginSession');
         done();
       })
     })
 
 
     it("should stay logged in if after login was completed", function(done){
-      request.get(localhost+'/users', function(err,res){
+      request.get(localhost+'/checkLoginSession', function(err,res){
         expect(res.statusCode).toBe(200);
         expect(res.body).toMatch(/session OK/i);
+        expect(res.req.path).toBe('/checkLoginSession');
         done();
       })
     })
@@ -205,7 +260,7 @@ describe("test User register/login/logout", function(){
     it("should recreate logintoken if logginin again when session already exists for current email", function(done){
       var token;
       //getting the existing logintoken
-      request.get(localhost+'/users', function(err,res){
+      request.get(localhost+'/checkLoginSession', function(err,res){
         expect(res.statusCode).toBe(200);
         expect(res.body).toMatch(/session OK/i);
         cookie = j.getCookies(localhost+"/login");
@@ -231,6 +286,7 @@ describe("test User register/login/logout", function(){
         expect(cookie).toBeDefined();
         expect(cookie).toMatch(/logintoken/i);
         expect(token).not.toBe(cookie[1].value);
+        expect(res.req.path).toBe('/checkLoginSession');
         done();
       })
 
@@ -245,15 +301,16 @@ describe("test User register/login/logout", function(){
         cookie = j.getCookies(localhost+"/login");
         expect(cookie).toBeDefined();
         expect(cookie).not.toMatch(/logintoken/i);
+        expect(res.req.path).toBe('/login');
         done();
       })
     })
 
 
     it("should stay logged OUT after logout was completed", function(done){
-      request.get(localhost+'/users', function(err,res){
+      request.get(localhost+'/checkLoginSession', function(err,res){
         expect(res.statusCode).toBe(200);
-        expect(res.body).toMatch(/login/i);
+        expect(res.req.path).toBe('/login');
         done();
       })
     })
@@ -285,6 +342,7 @@ describe("test User register/login/logout", function(){
         cookie = j.getCookies(localhost+"/login");
         expect(cookie).toBeDefined();
         expect(cookie).toMatch(/logintoken/i);
+        expect(res.req.path).toBe('/checkLoginSession');
         console.log("\nLogged in at: ", new Date().toJSON());
         done();
       })
@@ -292,9 +350,10 @@ describe("test User register/login/logout", function(){
 
 
     it("should stay logged in if after login was completed", function(done){
-      request.get(localhost+'/users', function(err,res){
+      request.get(localhost+'/checkLoginSession', function(err,res){
         expect(res.statusCode).toBe(200);
         expect(res.body).toMatch(/session OK/i);
+        expect(res.req.path).toBe('/checkLoginSession');
         done();
       })
     })
@@ -303,7 +362,7 @@ describe("test User register/login/logout", function(){
     it("should have correct expirations", function(done) {
         request.get(localhost+'/expirations', function(err, res){
           var body = JSON.parse(res.body);
-          console.log("\nSession: ",body);
+          console.log("\nSession:\n",body);
 
           expect(body.remember_me).toBeDefined();
           expect(body.lastTimeUsed).toBeDefined();
@@ -325,8 +384,8 @@ describe("test User register/login/logout", function(){
     it("should update lasttimeused and have same expiration after using for 3 second ", function(done) {
       
       setTimeout(function(){
-        request.get(localhost+'/users', function(err,res){
-          console.log("/users request after 3s, at: ", new Date().toJSON());
+        request.get(localhost+'/checkLoginSession', function(err,res){
+          console.log("/checkLoginSession request after 3s, at: ", new Date().toJSON());
           request.get(localhost+'/expirations', function(err, res){
             var body = JSON.parse(res.body);
             
@@ -348,8 +407,8 @@ describe("test User register/login/logout", function(){
     it("should update lastTimeUsed and have same expiration after using for 17 second ", function(done) {
       
       setTimeout(function(){
-        request.get(localhost+'/users', function(err,res){
-          console.log("/users request after 20s, at: ", new Date().toJSON());
+        request.get(localhost+'/checkLoginSession', function(err,res){
+          console.log("/checkLoginSession request after 20s, at: ", new Date().toJSON());
           request.get(localhost+'/expirations', function(err, res){
             var body = JSON.parse(res.body);
             
@@ -371,8 +430,8 @@ describe("test User register/login/logout", function(){
       
       setTimeout(function(){
 
-        request.get(localhost+'/users', function(err,res){
-          console.log("/users request after 27s, at: ", new Date().toJSON());
+        request.get(localhost+'/checkLoginSession', function(err,res){
+          console.log("/checkLoginSession request after 27s, at: ", new Date().toJSON());
           expect(res.body).toMatch(/Session OK/i);  //still loggedin
           
           request.get(localhost+'/expirations', function(err, res){
@@ -397,17 +456,17 @@ describe("test User register/login/logout", function(){
     it("should be logged out and session should be destroyed after another 13s ", function(done) {
       
       setTimeout(function(){
-        request.get(localhost+'/users', function(err,res){
-          console.log("/users request after 40s, Session destroyed at: ", new Date().toJSON());
+        request.get(localhost+'/checkLoginSession', function(err,res){
+          console.log("/checkLoginSession request after 40s, Session destroyed at: ", new Date().toJSON());
           expect(res.statusCode).toBe(200);
           expect(res.body).not.toMatch(/Session OK/i);
 
           //redirected to /login and deleted cookie.logintoken
           expect(res.statusCode).toBe(200);
-          expect(res.body).toMatch(/login/i);
           cookie = j.getCookies(localhost+"/login");
           expect(cookie).toBeDefined();
           expect(cookie).not.toMatch(/logintoken/i);
+          expect(res.req.path).toBe('/login');
           
           //session destroyed
           request.get(localhost+'/expirations', function(err, res){
@@ -450,6 +509,7 @@ describe("test User register/login/logout", function(){
         cookie = j.getCookies(localhost+"/login");
         expect(cookie).toBeDefined();
         expect(cookie).toMatch(/logintoken/i);
+        expect(res.req.path).toBe('/checkLoginSession');
         console.log("\nLogged in (with remember_me:true) at: ", new Date().toJSON());
         done();
       })
@@ -457,9 +517,10 @@ describe("test User register/login/logout", function(){
 
 
     it("should stay logged in if after login was completed", function(done){
-      request.get(localhost+'/users', function(err,res){
+      request.get(localhost+'/checkLoginSession', function(err,res){
         expect(res.statusCode).toBe(200);
         expect(res.body).toMatch(/session OK/i);
+        expect(res.req.path).toBe('/checkLoginSession');
         done();
       })
     })
@@ -468,7 +529,7 @@ describe("test User register/login/logout", function(){
     it("should have correct expirations when remember_me was checked", function(done) {
         request.get(localhost+'/expirations', function(err, res){
           var body = JSON.parse(res.body);
-          console.log("\nSession: ",body);
+          console.log("\nSession:\n",body);
 
           expect(body.remember_me).toBeDefined();
           expect(body.lastTimeUsed).toBeDefined();
@@ -490,10 +551,10 @@ describe("test User register/login/logout", function(){
     it('should logout', function(done){
       request.get(localhost+'/logout', function(err, res){
         expect(res.statusCode).toBe(200);
-        expect(res.body).toMatch(/login/i);
         cookie = j.getCookies(localhost+"/login");
         expect(cookie).toBeDefined();
         expect(cookie).not.toMatch(/logintoken/i);
+        expect(res.req.path).toBe('/login');
         done();
       })
     })

@@ -10,6 +10,7 @@ var methodOverride = require('method-override');
 var mongoose = require('mongoose');
 var jwt = require('jwt-simple');
 var app = express();
+var flash = require("connect-flash");
 
 //db
 var db = require("./db/dbconnect.js")(mongoose, "WEBAPP-" + process.env.NODE_ENV);
@@ -30,6 +31,7 @@ app.use(express.session( {
   secret: 'webapp secret key here',
   //store: new MongoStore({ mongoose_connection: mongoose.connections[0] })
 }));
+app.use(flash());
 app.use(methodOverride());
 app.use(app.router);
 app.use(express.static(path.join(__dirname, 'public')));
@@ -68,9 +70,9 @@ app.get('/', routes.index);
 app.get('/testlogin', checkLogin, function(req,res){
   res.render('user/testLogin.jade', {currentUser: req.currentUser});
 })
-app.get('/users', checkLogin, function(req,res){
-  res.send('session OK')
-});
+// app.get('/users', checkLogin, function(req,res){
+//   res.send('session OK')
+// });
 app.get('/redirect', function(req,res){
   res.redirect('/');
 })
@@ -78,40 +80,59 @@ app.get('/redirect', function(req,res){
 
 //*** user routes ***
 app.get('/register', function(req,res){
-  res.render('user/register.jade');
+  
+  var errorMessage = req.flash('loginErrorMessage')[0];
+  if (errorMessage) res.render('user/register.jade', {emailErrorMessage: errorMessage.email, passwordErrorMessage: errorMessage.password});
+  else res.render('user/register.jade');
 })
 
 app.post('/register', function(req,res){
     var userFields = {
       email : req.body.email,
       password : req.body.password
-    }
+    } //validation here too ????
 
     var user = new User(userFields);
 
     user.save(function(err, savedUser){
       if (err) {
-        res.send(400, err);
+
+        //parsing the errors
+        if (err.code && err.code === 11000) req.flash('loginErrorMessage',{email:"User already exists"});
+        else {
+          user.parseValidationError();
+          req.flash('loginErrorMessage',user.parseValidationError());
+        }
+
+        res.redirect("/register");
         return;
       }
-      res.send(savedUser);
-      //res.redirect('/inside');
+      //res.send(savedUser);
+      res.redirect('/login');
     })
 })
 
 app.get('/login', function(req,res){
-  res.render('user/login.jade', {  /*, messages: req.flash('login')*/ });
+  var errorMessage = req.flash('loginErrorMessage')[0];
+  if (errorMessage) res.render('user/login.jade', {emailErrorMessage: errorMessage.email, passwordErrorMessage: errorMessage.password});
+  else res.render('user/login.jade');
 })
 
 app.post('/login', function(req,res){
-  var user = {     email: req.body.email,  };
+  var user = {     email: req.body.email  };
   var remember_me = Date.now() + defaultExpiration;  //default expiration 30min
 
   User.findOne(user, function(err, user){
-    if (err) {res.send(400, err); return;}
+    if (err) {
+      res.send(400, err); 
+      return;
+    }
     if (user) {
       user.authenticate(req.body.password, function(err, result){
-        if (err) {res.send(400, err); return;}
+        if (err) {
+          res.send(400,err);
+          return;
+        }
         if(result === true) {
           //find if an old session already exists for this email
           if (req.body.remember_me) remember_me = Date.now() + sessionExpiration;    //stored session expiration date
@@ -133,14 +154,24 @@ app.post('/login', function(req,res){
               ///else  
               res.cookie('logintoken', encodedCookieToken, {path: '/'} ) //2*7days
               //res.send(token);
-              res.redirect("/users");
+              res.redirect("/checkLoginSession");
             })
           });
 
         }
-        else res.send(400,"bad password");
+        else {
+          //bad password
+          req.flash('loginErrorMessage',{password:"Bad password"});
+          res.redirect('/login');
+          return;
+        }
       })
-    } else { res.send(400, "can't find email")};
+    } else { 
+      //can't find email
+      req.flash('loginErrorMessage',{email:"Can't find email"});
+      res.redirect("/login");
+      //res.send(400, "can't find email")
+    };
   })
 })
 
@@ -154,7 +185,7 @@ function checkLogin(req,res,next){
         
         //check if session expired. If remember_me expired and lastTimeUsed was 10min ago then delete session.
         if ((session.remember_me < Date.now()) && ((Date.now() - session.lastTimeUsed))>lastTimeUsedExpiration) { //lasttimeused more then 10min ago
-          console.log("Session expired");
+          console.log("Session expired for " + session.email);
           session.remove();
           res.clearCookie('logintoken');
           res.redirect('/login');
@@ -213,6 +244,10 @@ app.get('/expirations', function(req,res){
    })
   } else res.send(400,"error: missing logintoken cookie");
 })
+
+app.get('/checkLoginSession', checkLogin, function(req,res){
+  res.send('session OK')
+});
 
 
 http.createServer(app).listen(app.get('port'), function(){
