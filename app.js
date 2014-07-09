@@ -45,9 +45,9 @@ if ('production' == app.get('env')) {
 
 // test only
 if ('test' == app.get('env')) {
-  var sessionExpiration = 2500*60;   //2.5min for remember_me
-  var defaultExpiration = 1000*60   //1min for when remember_me expires (remmeber_me not checked)
-  var lastTimeUsedExpiration = 1000*30; //30s for when lastTimeUsed expires
+  var sessionExpiration = 1000*60;   //60s for remember_me
+  var defaultExpiration = 1000*25   //25s for when remember_me expires (remmeber_me not checked)
+  var lastTimeUsedExpiration = 1000*10; //10s for when lastTimeUsed expires
 
   //app.use(express.errorHandler());
 

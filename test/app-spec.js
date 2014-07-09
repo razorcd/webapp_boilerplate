@@ -303,7 +303,7 @@ describe("test User register/login/logout", function(){
     it("should have correct expirations", function(done) {
         request.get(localhost+'/expirations', function(err, res){
           var body = JSON.parse(res.body);
-          console.log("\n",body);
+          console.log("\nSession: ",body);
 
           expect(body.remember_me).toBeDefined();
           expect(body.lastTimeUsed).toBeDefined();
@@ -314,19 +314,19 @@ describe("test User register/login/logout", function(){
           expect(body.lastTimeUsed+5000).toBeGreaterThan(Date.now()); //lastTimeUsed max 5s ago
           expect(body.lastTimeUsed).toBeLessThan(Date.now()); //lastTimeUsed before now
 
-          expect(body.remember_me-60000*1-10000).toBeLessThan(Date.now()); //remember_me until over 1min
-          expect(body.remember_me-50000).toBeGreaterThan(Date.now()); //remember_me is bigger than now+50s
+          expect(body.remember_me-30000).toBeLessThan(Date.now()); //remember_me until over 25s
+          expect(body.remember_me-20000).toBeGreaterThan(Date.now()); //remember_me is bigger than now+20s
           
           done();
         })      
     });
 
-    //TIME: 10s  -  updating lastTimeUsed
-    it("should update lasttimeused and have same expiration after using for 10 second ", function(done) {
+    //TIME: 3s  -  updating lastTimeUsed
+    it("should update lasttimeused and have same expiration after using for 3 second ", function(done) {
       
       setTimeout(function(){
         request.get(localhost+'/users', function(err,res){
-          console.log("/users request after 10s, at: ", new Date().toJSON());
+          console.log("/users request after 3s, at: ", new Date().toJSON());
           request.get(localhost+'/expirations', function(err, res){
             var body = JSON.parse(res.body);
             
@@ -338,18 +338,18 @@ describe("test User register/login/logout", function(){
         })
 
 
-      }, 10000);
+      }, 3000);
 
-    }, 20000);   //jasmine waits for 20s before error
+    }, 5000);   //jasmine waits for 20s before error
 
 
 
-    //TIME: 55s - updating lastTimeUsed, remember_me still not expired
-    it("should update lastTimeUsed and have same expiration after using for 45 second ", function(done) {
+    //TIME: 20s - updating lastTimeUsed, remember_me still not expired
+    it("should update lastTimeUsed and have same expiration after using for 17 second ", function(done) {
       
       setTimeout(function(){
         request.get(localhost+'/users', function(err,res){
-          console.log("/users request after 45s, at: ", new Date().toJSON());
+          console.log("/users request after 20s, at: ", new Date().toJSON());
           request.get(localhost+'/expirations', function(err, res){
             var body = JSON.parse(res.body);
             
@@ -361,23 +361,24 @@ describe("test User register/login/logout", function(){
         })
 
 
-      }, 45000);
+      }, 17000);
 
-    }, 50000);   //jasmine waits for 20s before error
+    }, 25000);   //jasmine waits for 25s before error
 
 
-    //TIME: 1min3s  - remember_me should be expired but lastTimeUsed < 30s   |  still loggedin
-    it("should update lastTimeUsed and have same expiration after using for another 8 second ", function(done) {
+    //TIME: 27s  - remember_me should be expired but lastTimeUsed < 30s   |  still loggedin
+    it("should update lastTimeUsed and have same expiration after using for another 7 second ", function(done) {
       
       setTimeout(function(){
 
         request.get(localhost+'/users', function(err,res){
-          console.log("/users request after 1min3s, at: ", new Date().toJSON());
+          console.log("/users request after 27s, at: ", new Date().toJSON());
           expect(res.body).toMatch(/Session OK/i);  //still loggedin
           
           request.get(localhost+'/expirations', function(err, res){
             var body = JSON.parse(res.body);
             
+            expect(body.remember_me).toBeLessThan(Date.now());
             expect(body.lastTimeUsed+5000).toBeGreaterThan(Date.now()); //lastTimeUsed max 5s ago
             expect(body.lastTimeUsed).toBeLessThan(Date.now()); //lastTimeUsed before now
             
@@ -387,17 +388,17 @@ describe("test User register/login/logout", function(){
         })
 
 
-      }, 8000);
+      }, 7000);
 
     }, 10000);   //jasmine waits for 20s before error
 
 
-    //TIME: 1min43s  - session should be expired and user logged out
-    it("should be logged out and session should be destroyed after another 40s ", function(done) {
+    //TIME: 40s  - session should be expired and user logged out
+    it("should be logged out and session should be destroyed after another 13s ", function(done) {
       
       setTimeout(function(){
         request.get(localhost+'/users', function(err,res){
-          console.log("/users request after 45s, LOGGED-OUT at: ", new Date().toJSON());
+          console.log("/users request after 40s, Session destroyed at: ", new Date().toJSON());
           expect(res.statusCode).toBe(200);
           expect(res.body).not.toMatch(/Session OK/i);
 
@@ -408,7 +409,7 @@ describe("test User register/login/logout", function(){
           expect(cookie).toBeDefined();
           expect(cookie).not.toMatch(/logintoken/i);
           
-          //session destroied
+          //session destroyed
           request.get(localhost+'/expirations', function(err, res){
             //var body = JSON.parse(res.body);
             expect(res.statusCode).not.toBe(200);
@@ -420,9 +421,9 @@ describe("test User register/login/logout", function(){
         })
 
 
-      }, 40000);
+      }, 13000);
 
-    }, 50000);   //jasmine waits for 20s before error
+    }, 20000);   //jasmine waits for 20s before error
 
   });
   
@@ -449,7 +450,7 @@ describe("test User register/login/logout", function(){
         cookie = j.getCookies(localhost+"/login");
         expect(cookie).toBeDefined();
         expect(cookie).toMatch(/logintoken/i);
-        console.log("\nLogged in at: ", new Date().toJSON());
+        console.log("\nLogged in (with remember_me:true) at: ", new Date().toJSON());
         done();
       })
     })
@@ -467,7 +468,7 @@ describe("test User register/login/logout", function(){
     it("should have correct expirations when remember_me was checked", function(done) {
         request.get(localhost+'/expirations', function(err, res){
           var body = JSON.parse(res.body);
-          console.log("\n",body);
+          console.log("\nSession: ",body);
 
           expect(body.remember_me).toBeDefined();
           expect(body.lastTimeUsed).toBeDefined();
@@ -478,14 +479,14 @@ describe("test User register/login/logout", function(){
           expect(body.lastTimeUsed+5000).toBeGreaterThan(Date.now()); //lastTimeUsed max 5s ago
           expect(body.lastTimeUsed).toBeLessThan(Date.now()); //lastTimeUsed before now
 
-          expect(body.remember_me-60000*2-45000).toBeLessThan(Date.now()); //remember_me is smaller than now+2min45s
-          expect(body.remember_me-60000*2-15000).toBeGreaterThan(Date.now()); //remember_me is bigger than now+2min15s
+          expect(body.remember_me-60000*1-15000).toBeLessThan(Date.now()); //remember_me is smaller than now+1min15s
+          expect(body.remember_me-45000).toBeGreaterThan(Date.now()); //remember_me is bigger than now+45s
           
           done();
         })      
     });
     
-    
+
     it('should logout', function(done){
       request.get(localhost+'/logout', function(err, res){
         expect(res.statusCode).toBe(200);
