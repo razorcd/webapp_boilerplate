@@ -39,12 +39,18 @@ app.use(express.static(path.join(__dirname, 'public')));
 // development only
 if ('production' == app.get('env')) {
   var sessionExpiration = 1000*60*60*24*7*2;   //2weeks for remember_me
+  var defaultExpiration = 1000*60*30; //30min for when remember_me expires
+  var lastTimeUsedExpiration = 1000*60*15; //15min for when lastTimeUsed expires
 }
 
 // test only
 if ('test' == app.get('env')) {
-  var sessionExpiration = 5000*60;   //5min for remember_me
-  app.use(express.errorHandler());
+  var sessionExpiration = 2500*60;   //2.5min for remember_me
+  var defaultExpiration = 1000*60   //1min for when remember_me expires (remmeber_me not checked)
+  var lastTimeUsedExpiration = 1000*30; //30s for when lastTimeUsed expires
+
+  //app.use(express.errorHandler());
+
   //delete all users first
   User.find().remove().exec(function(){
     //execute jasmine tests in new process
@@ -99,7 +105,7 @@ app.get('/login', function(req,res){
 
 app.post('/login', function(req,res){
   var user = {     email: req.body.email,  };
-  var remember_me = Date.now() + 1000*60*10;  //default expiration 30min
+  var remember_me = Date.now() + defaultExpiration;  //default expiration 30min
 
   User.findOne(user, function(err, user){
     if (err) {res.send(400, err); return;}
@@ -147,7 +153,7 @@ function checkLogin(req,res,next){
       if (session && decCookieSession.token === session.token) {
         
         //check if session expired. If remember_me expired and lastTimeUsed was 10min ago then delete session.
-        if ((session.remember_me < Date.now()) && ((Date.now() - session.lastTimeUsed)/1000)>10*60) { //lasttimeused more then 10min ago
+        if ((session.remember_me < Date.now()) && ((Date.now() - session.lastTimeUsed))>lastTimeUsedExpiration) { //lasttimeused more then 10min ago
           console.log("Session expired");
           session.remove();
           res.clearCookie('logintoken');
@@ -189,6 +195,24 @@ app.get('/logout', function(req,res){
 
 //*** user routes END ***
 
+
+//test routes
+app.get('/expirations', function(req,res){
+  if(req.cookies && req.cookies.logintoken){
+   var decCookieToken = jwt.decode(req.cookies.logintoken, "secret webapp token pass");
+   Session.findOne({email: decCookieToken.email}, function(err, ses){
+    if (err){
+      res.send("error finding session");
+      return;
+    }
+    res.send({
+      remember_me : Date.parse(ses.remember_me),
+      lastTimeUsed: Date.parse(ses.lastTimeUsed) ,
+      createdAt: Date.parse(ses.createdAt) 
+    })
+   })
+  } else res.send(400,"error: missing logintoken cookie");
+})
 
 
 http.createServer(app).listen(app.get('port'), function(){
