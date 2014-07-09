@@ -1,6 +1,5 @@
 //test:  jasmine-node test/app-spec.js --autotest
 var request = require('request');
-var os = require('os');
 var cookie;
 var j = request.jar();
 var request = request.defaults({jar: j});

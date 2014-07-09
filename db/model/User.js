@@ -12,6 +12,7 @@ userSchema.methods.authenticate = function(plainPassword, cb){
   bcrypt.compare(plainPassword, this.password, function(err, result){cb(err, result);})
 };
 
+//returns validation error as an object {email: 'some error', password: 'some other error'}
 userSchema.methods.parseValidationError = function(){
   if (!this.errors) return;
   var error = {email: '', password: ''};
@@ -42,13 +43,8 @@ function validatePass(pass){
   return re.test(pass);
 }
 
-//make salt for session identification
-userSchema.methods.makeSalt = function(){
-  return Math.round((new Date().valueOf() * Math.random())) + '';
-}
-
+//User Model
 exports.User = function(db){
   var Model = db.model('User', userSchema);
-
   return Model;
 }

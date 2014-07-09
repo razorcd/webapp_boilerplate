@@ -1,12 +1,11 @@
 var mongoose = require('mongoose');
-//var jwt = require('jwt-simple');
 
 var sessionSchema = mongoose.Schema({
-  createdAt:{type: Date, default: Date.now()},
   email: {type: String, unique: true, required:true},
   token: {type: String},
   remember_me: {type: Date}, //default expiraton 30min
-  lastTimeUsed: {type: Date, default: Date.now()} //if ( lasttimeused > 30min and expire<Date.now() )  delete doc
+  lastTimeUsed: {type: Date, default: Date.now()}, //if ( lasttimeused > 30min and expire<Date.now() )  delete doc
+  createdAt: {type: Date, default: Date.now()}
 });
 
 //set lastTimeUsed to now
