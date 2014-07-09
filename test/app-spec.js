@@ -13,14 +13,15 @@ describe("test User register/login/logout", function(){
 
   describe("test GET /", function() {
 
-    it("should return status 200 ok /", function(done) {
+
+    it("should have a / route", function(done) {
       request.get(localhost, function(err,res){
         expect(res.statusCode).toBe(200);
         done();
       })
     });
 
-
+    //testing request redirect response
     it("should redirect and then return status 200", function(done) {
       request.get(localhost+'/redirect', function(err,res){
         expect(res.statusCode).toBe(200);
@@ -142,6 +143,9 @@ describe("test User register/login/logout", function(){
         expect(res.statusCode).toBe(200);
         //exp(res.body).toMatch(/test4@test.test/i);
         expect(res.req.path).not.toBe('/register');
+
+        //it should be logged in automaticaly
+        expect(res.req.path).not.toBe('/login');
         done();
       })
     })
@@ -170,7 +174,7 @@ describe("test User register/login/logout", function(){
   })
 
 
-  describe("login user and destroy session on expiration", function(){
+  describe("login/logout user", function(){
 
     it("should return login window", function(done){
       request.get(localhost+"/login", function(err,res){

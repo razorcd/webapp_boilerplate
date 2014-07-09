@@ -67,12 +67,7 @@ if ('test' == app.get('env')) {
 }
 
 app.get('/', routes.index);
-app.get('/testlogin', checkLogin, function(req,res){
-  res.render('user/testLogin.jade', {currentUser: req.currentUser});
-})
-// app.get('/users', checkLogin, function(req,res){
-//   res.send('session OK')
-// });
+
 app.get('/redirect', function(req,res){
   res.redirect('/');
 })
@@ -106,9 +101,10 @@ app.post('/register', function(req,res){
 
         res.redirect("/register");
         return;
+      } else {
+        //register successful
+        login(userFields, req, res);
       }
-      //res.send(savedUser);
-      res.redirect('/login');
     })
 })
 
@@ -119,16 +115,25 @@ app.get('/login', function(req,res){
 })
 
 app.post('/login', function(req,res){
-  var user = {     email: req.body.email  };
+  var userLogin = {     
+    email: req.body.email,
+    password: req.body.password
+  };
+  
+  login(userLogin, req, res);
+})
+
+
+function login(userLogin, req, res, next){
   var remember_me = Date.now() + defaultExpiration;  //default expiration 30min
 
-  User.findOne(user, function(err, user){
+  User.findOne({email: userLogin.email}, function(err, user){
     if (err) {
       res.send(400, err); 
       return;
     }
     if (user) {
-      user.authenticate(req.body.password, function(err, result){
+      user.authenticate(userLogin.password, function(err, result){
         if (err) {
           res.send(400,err);
           return;
@@ -152,8 +157,7 @@ app.post('/login', function(req,res){
               //if (req.body.remember_me)  res.cookie('logintoken', encodedCookieToken, { expires: new Date(Date.now() + sessionExpiration), path: '/' }) //15s
                 //res.cookie('logintoken', encodedCookieToken, { expires: new Date(Date.now() + 2 * 604800000), path: '/' }) //2*7days
               ///else  
-              res.cookie('logintoken', encodedCookieToken, {path: '/'} ) //2*7days
-              //res.send(token);
+              res.cookie('logintoken', encodedCookieToken, {path: '/'} ) 
               res.redirect("/checkLoginSession");
             })
           });
@@ -170,11 +174,9 @@ app.post('/login', function(req,res){
       //can't find email
       req.flash('loginErrorMessage',{email:"Can't find email"});
       res.redirect("/login");
-      //res.send(400, "can't find email")
     };
   })
-})
-
+}
 
 
 function checkLogin(req,res,next){
@@ -191,11 +193,6 @@ function checkLogin(req,res,next){
           res.redirect('/login');
           return;
         }
-        //console.log("Session alive");
-        //console.log("Remaining until remember_me: ", (session.remember_me - Date.now())/1000/60 + "min until expiration"); 
-        //console.log("Lasttimeused: ", (Date.now() - session.lastTimeUsed)/1000 + "s ago"); 
-        //console.log(req.cookies);
-        //if (req.cookies.logintoken) res.cookie('logintoken', req.cookies.logintoken, { expires: new Date(Date.now() + sessionExpiration), path: '/' }) //reset cookie expiratin to another 10min
                                           
         req.currentUser = session.email;
         session.setLastTimeUsed(); session.save();  //updating sesions lastTimeUsed value
@@ -227,7 +224,7 @@ app.get('/logout', function(req,res){
 //*** user routes END ***
 
 
-//test routes
+// *** test routes ****
 app.get('/expirations', function(req,res){
   if(req.cookies && req.cookies.logintoken){
    var decCookieToken = jwt.decode(req.cookies.logintoken, "secret webapp token pass");
@@ -246,9 +243,9 @@ app.get('/expirations', function(req,res){
 })
 
 app.get('/checkLoginSession', checkLogin, function(req,res){
-  res.send('session OK')
+  res.render('user/checkLoginSession.jade', {currentUser: req.currentUser});
 });
-
+// *** test routes END ****
 
 http.createServer(app).listen(app.get('port'), function(){
   console.log(' ------------------- Express server listening on port ' + app.get('port') + ' -------------------');
